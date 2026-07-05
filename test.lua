@@ -17,9 +17,8 @@ CreateThread(function()
         TDS:ReadyUp()
 		TDS:StartGame()
         TDS:SkipWave()
-        TDS:RestartGame()
 
-        if TDS:HasTriumph() then
+        if TDS:HasTriumph() or TDS:GameOverDied() then
             TDS:CreateMatch("Easy")
         end
 
