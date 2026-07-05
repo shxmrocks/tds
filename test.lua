@@ -3,7 +3,7 @@ local TeleportCheck = false
 game.Players.LocalPlayer.OnTeleport:Connect(function(State)
 	if not TeleportCheck then
 		TeleportCheck = true
-		queueteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/shxmrocks/tds/refs/heads/main/test.lua'))()")
+		queueonteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/shxmrocks/tds/refs/heads/main/test.lua'))()")
 	end
 end)
 if game.PlaceId == 3260590327 then
