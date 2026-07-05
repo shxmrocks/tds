@@ -632,7 +632,7 @@ function Tower:Upgrade(PathId: number): boolean
     end)
 
     if ok and checkOk(res) then 
-        Log(string.format("Successfully upgraded %s at index #%s", self.Replicator:GetAttribute("Name"), self.TDS.PlacedTowers[self]), Color3.new(0, 1, 0))
+        Log(string.format("Successfully upgraded %s at index #%s", self.Replicator:GetAttribute("Name"), table.find(self.TDS.PlacedTowers, self)), Color3.new(0, 1, 0))
         return true
     else
         return Log(msg, Color3.new(1, 1, 0))
@@ -654,7 +654,7 @@ function Tower:Sell()
         end
         return true
     else
-        return Log(string.format("Could not sell %s at index #%s", self.Replicator:GetAttribute("Name"), self.TDS.PlacedTowers[self]), Color3.new(1, 0, 0))
+        return Log(string.format("Failed to sell %s at index #%s", self.Replicator:GetAttribute("Name"), table.find(self.TDS.PlacedTowers, self)), Color3.new(1, 0, 0))
     end
 end
 
