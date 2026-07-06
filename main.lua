@@ -26,6 +26,7 @@ local TeleportCheck = false
 table.insert(Connections, LocalPlayer.OnTeleport:Connect(function()
 	if not TeleportCheck then
 		TeleportCheck = true
+        autosave()
 		queueonteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/shxmrocks/tds/refs/heads/main/main.lua'))()")
 	end
 end))
@@ -846,6 +847,8 @@ LoadGroupbox:AddDropdown("MacroList", {
                 Description = string.format("Map: %s\nMode: %s\nDifficulty: %s\nLoadout: %s", info.Map, info.Mode, info.Difficulty, table.concat(info.Loadout, ", ")),
                 OutsideClickDismiss = true
             })
+
+            Toggles.MacroActive.Callback()
         end
     end
 })
