@@ -26,6 +26,7 @@ LocalPlayer.OnTeleport:Connect(function()
 		TeleportCheck = true
         if TDS then
             writefile("TDSMacros/currentMacro.txt", Library.Options.MacroList.Value)
+            TDS:GenerateSessionID()
         end
 		queueonteleport([[
             loadstring(game:HttpGet('https://raw.githubusercontent.com/shxmrocks/tds/refs/heads/main/main.lua'))()
@@ -185,7 +186,7 @@ do
         end)
     end
 
-    local function Clear()
+    function ClearLogs()
         for _, item in RealBackground:GetChildren() do
             if item:IsA("TextLabel") then 
                 item:Destroy() 
@@ -194,7 +195,7 @@ do
         Library:Notify("Cleared logs")
     end
 
-    local function Save()
+    function SaveLogs()
         local full = ""
         for _, item in RealBackground:GetChildren() do
             if item:IsA("TextLabel") then 
@@ -389,8 +390,6 @@ function TDS:GenerateSessionID(): ()
     self.SessionID = id
     
     writefile("TDSMacros/sessionID.txt", id)
-
-    Log("Session " .. id)
 end
 
 function TDS:GetSessionID(): string
@@ -765,7 +764,7 @@ end
 
 -- deprecated
 function TDS:UpgradeAllTowers()
-    if not self:InMatch() then 
+    if self:GetGameStatus() ~= "Game" then 
         return 
     end
     
@@ -881,7 +880,12 @@ OtherGroupbox:AddToggle("ToggleLogs", {
 	Text = "Toggle Logs",
 	Default = false,
     Callback = function(Value)
+        ClearLogs()
         TDS:ToggleLogs(Value)
+
+        if Value then
+            Log("Session " .. TDS:GetSessionID())
+        end
     end
 })
 
