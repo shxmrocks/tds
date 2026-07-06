@@ -19,6 +19,14 @@ local TeleportService = game:GetService("TeleportService")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
+local TeleportCheck = false
+LocalPlayer.OnTeleport:Connect(function()
+	if not TeleportCheck then
+		TeleportCheck = true
+		queueonteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/shxmrocks/tds/refs/heads/main/main.lua'))()")
+	end
+end)
+
 local stuck = 0
 while LocalPlayer:GetAttribute("Loading") or LocalPlayer:GetAttribute("Teleporting") do
     task.wait(1)
@@ -29,6 +37,20 @@ while LocalPlayer:GetAttribute("Loading") or LocalPlayer:GetAttribute("Teleporti
             TeleportService:Teleport(3260590327)
         end)
     end
+end
+
+GuiService.ErrorMessageChanged:Connect(function()
+    pcall(function()
+        TeleportService:Teleport(3260590327)
+    end)
+end)
+
+for _, connection in pairs(getconnections(LocalPlayer.Idled)) do
+	if connection["Disable"] then
+		connection["Disable"](connection)
+	elseif connection["Disconnect"] then
+		connection["Disconnect"](connection)
+	end
 end
 
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
@@ -156,6 +178,12 @@ do
     saveButton.Activated:Connect(Save)
 end
 
+do
+    if not isfolder("TDScrap") then
+        makefolder("TDScrap")
+    end
+end
+
 -- // dumb functions
 
 local function checkOk(data)
@@ -278,6 +306,19 @@ function TDS:ToggleLogs(Visible: boolean): ()
     Holder.Visible = Visible
 end
 
+function TDS:GenerateSessionID(): ()
+    local id = HttpService:GenerateGUID(false)
+    self.SessionID = id
+    
+    writefile("TDScrap/sessionID.txt", id)
+
+    Log("Session " .. id)
+end
+
+function TDS:GetSessionID(): string
+    return self.SessionID
+end
+
 function TDS:GoTo(Position: Vector3): ()
     local character = LocalPlayer.Character or nil
     character:PivotTo(CFrame.new(Position) * character:GetPivot().Rotation)
@@ -295,52 +336,30 @@ end
 
 -- // game related functions
 
-function TDS:InLobby(): boolean
-    if workspace:FindFirstChild("Type").Value == "Lobby" then
-        return true
-    end
-
-    return false
-end
-
-function TDS:InMatch(): boolean
+function TDS:GetGameStatus(): string
     if workspace:FindFirstChild("Type").Value == "Game" then
-        return true
+        return "Game"
+    elseif workspace:FindFirstChild("Type").Value == "Lobby" then
+        return "Lobby"
     end
-
-    return false
 end
 
-function TDS:IsIntermission(): boolean
-    if not self:InMatch() then
+function TDS:GetMatchStatus(): string
+    if self:GetGameStatus() ~= "Game" then
         return
     end
 
-    return GameState.Intermission and true or false
-end
-
-function TDS:GameStarted(): boolean
-    if not self:InMatch() then
-        return
+    if GameState.Intermission then
+        return "Intermission"
+    elseif not GameState.GameStarted then
+        return "Not Started"
+    elseif GameState.GameStarted then
+        return "In Progress"
+    elseif (GameState.GameOver and GameState.Health <= 0) then
+        return "Dead"
+    elseif (GameState.GameOver and GameState.Health > 0) then
+        return "Triumph"
     end
-
-    return GameState.GameStarted and true or false
-end
-
-function TDS:GameOverDied(): boolean
-    if not self:InMatch() then
-        return
-    end
-
-    return (GameState.GameOver and GameState.Health <= 0) and true or false
-end
-
-function TDS:HasTriumph(): boolean
-    if not self:InMatch() then
-        return
-    end
-
-    return (GameState.GameOver and GameState.Health >= 0) and true or false
 end
 
 function TDS:GetLoadout(Player: Player?)
@@ -413,7 +432,7 @@ function TDS:SetLoadout(...)
 end
 
 function TDS:GetCurrentWave(): number
-    if not self:InMatch() then
+    if self:GetGameStatus() ~= "Game" then
         return
     end
 
@@ -421,7 +440,7 @@ function TDS:GetCurrentWave(): number
 end
 
 function TDS:GetCurrentCash(Player: Player?): number
-    if not self:InMatch() then
+    if self:GetGameStatus() ~= "Game" then
         return
     end
 
@@ -430,7 +449,7 @@ function TDS:GetCurrentCash(Player: Player?): number
 end
 
 function TDS:GetWaveTimer(): number
-    if not self:InMatch() then
+    if self:GetGameStatus() ~= "Game" then
         return
     end
 
@@ -501,7 +520,7 @@ function TDS:TeleportToLobby()
 end
 
 function TDS:IsMapAvailable(Name: string): boolean
-    if not self:IsIntermission() then
+    if self:GetMatchStatus() ~= "Intermission" then
         return
     end
 
@@ -520,7 +539,7 @@ function TDS:IsMapAvailable(Name: string): boolean
 end
 
 function TDS:ReadyUp(): ()
-    if not self:IsIntermission() then
+    if self:GetMatchStatus() ~= "Intermission" then
         return
     end
 
@@ -528,7 +547,7 @@ function TDS:ReadyUp(): ()
 end
 
 function TDS:VetoMaps(): ()
-    if not self:IsIntermission() then
+    if self:GetMatchStatus() ~= "Intermission" then
         return
     end
 
@@ -536,7 +555,7 @@ function TDS:VetoMaps(): ()
 end
 
 function TDS:VoteMap(Name: string): ()
-    if not self:IsIntermission() then
+    if self:GetMatchStatus() ~= "Intermission" then
         return
     end
 
@@ -544,7 +563,7 @@ function TDS:VoteMap(Name: string): ()
 end
 
 function TDS:StartGame(): ()
-    if self:GameStarted() then
+    if self:GetMatchStatus() ~= "Not Started" then
         return
     end
 
@@ -560,7 +579,7 @@ function TDS:StartGame(): ()
 end
 
 function TDS:SkipWave(): ()
-    if not self:GameStarted() then
+    if self:GetMatchStatus() ~= "In Progress" then
         return
     end
 
@@ -576,7 +595,7 @@ function TDS:SkipWave(): ()
 end
 
 function TDS:RestartGame(): ()
-    if not self:GameOverDied() then
+    if self:GetMatchStatus() ~= "Dead" then
         return
     end
 
@@ -597,7 +616,7 @@ function Tower.new(instance, replicator, manager)
 end
 
 function TDS:PlaceTower(Name: string, Pos: Vector3, ...): Instance
-    if not self:InMatch() then
+    if self:GetGameStatus() ~= "Game" then
         return
     end
 
@@ -662,6 +681,7 @@ function Tower:GetPosition()
     return self.Replicator:GetAttribute("Position")
 end
 
+-- deprecated
 function TDS:UpgradeAllTowers()
     if not self:InMatch() then 
         return 
@@ -679,6 +699,10 @@ function TDS:UpgradeAllTowers()
 end
 
 function TDS:SellAllTowers()
+    if self:GetGameStatus() ~= "Game" then
+        return
+    end
+
     for i = #self.PlacedTowers, 1, -1 do
         CreateThread(function()
             local tower = self.PlacedTowers[i]
