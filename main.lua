@@ -25,12 +25,12 @@ LocalPlayer.OnTeleport:Connect(function()
 	if not TeleportCheck then
 		TeleportCheck = true
         if TDS then
-            writefile("TDSMacros/currentMacro.txt", Options.MacroList.Value)
+            writefile("TDSMacros/currentMacro.txt", Library.Options.MacroList.Value)
         end
 		queueonteleport([[
             loadstring(game:HttpGet('https://raw.githubusercontent.com/shxmrocks/tds/refs/heads/main/main.lua'))()
             
-            local macroName = readfile("TDSMacros/currentMacro")
+            local macroName = readfile("TDSMacros/currentMacro.txt")
             if macroName then
                 loadstring(readfile("TDSMacros/" .. macroName .. ".txt"))()
             end
@@ -826,6 +826,7 @@ LoadGroupbox:AddToggle("MacroActive", {
 	Default = false,
     Callback = function(Value)
         if Value then
+            task.wait(1) -- idk find a better way to wait for the option to load
             TDS:RunMacro(Options.MacroList.Value)
         end
     end
