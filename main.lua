@@ -20,16 +20,21 @@ local TeleportService = game:GetService("TeleportService")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
+local Connections = {}
+
 local TeleportCheck = false
-LocalPlayer.OnTeleport:Connect(function()
+table.insert(Connections, LocalPlayer.OnTeleport:Connect(function()
 	if not TeleportCheck then
 		TeleportCheck = true
-        if TDS then
-            TDS:GenerateSessionID()
-        end
 		queueonteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/shxmrocks/tds/refs/heads/main/main.lua'))()")
 	end
-end)
+end))
+
+table.insert(Connections, game.Close:Connect(function()
+	if isfile("TDSMacros/sessionID.txt") and not TeleportCheck then
+        delfile("TDSMacros/sessionID.txt")
+    end
+end))
 
 local stuck = 0
 while LocalPlayer:GetAttribute("Loading") or LocalPlayer:GetAttribute("Teleporting") do
@@ -43,11 +48,11 @@ while LocalPlayer:GetAttribute("Loading") or LocalPlayer:GetAttribute("Teleporti
     end
 end
 
-GuiService.ErrorMessageChanged:Connect(function()
+table.insert(Connections, GuiService.ErrorMessageChanged:Connect(function()
     pcall(function()
         TeleportService:Teleport(3260590327)
     end)
-end)
+end))
 
 for _, connection in pairs(getconnections(LocalPlayer.Idled)) do
 	if connection["Disable"] then
@@ -247,7 +252,6 @@ local function checkOk(data)
     return false
 end
 
-local Connections = {}
 local Keybinds = {}
 local BreakLoops = false
 
@@ -288,7 +292,8 @@ table.insert(Connections, UserInputService.InputBegan:Connect(function(input, ga
 end))
 
 local function CreateThread(func, ...)
-	local thread = task.spawn(func, ...)
+	local thread = coroutine.create(func)
+	coroutine.resume(thread, ...)
 	return thread
 end
 
@@ -426,7 +431,7 @@ function TDS:GetMatchStatus(): string
         return "Intermission"
     elseif not GameState.GameStarted then
         return "Not Started"
-    elseif GameState.GameStarted then
+    elseif GameState.GameStarted and not GameState.GameOver then
         return "In Progress"
     elseif (GameState.GameOver and GameState.Health <= 0) then
         return "Dead"
@@ -793,7 +798,7 @@ local Window = Library:CreateWindow({
     Footer = "version: " .. info.version,
     Icon = 13340047973,
 	Center = true,
-	AutoShow = true,
+	AutoShow = false,
 	Resizable = true,
 	EnableSidebarResize = true,
 	ShowCustomCursor = false,
@@ -880,6 +885,12 @@ OtherGroupbox:AddToggle("ToggleLogs", {
         end
     end
 })
+
+if not isfile("TDSMacros/sessionID.txt") then
+    TDS:GenerateSessionID()
+end
+
+Library:Notify("Press right shift to toggle the UI")
 
 --[[local Watermark = Library:AddDraggableLabel("watermark...")
 Watermark:SetVisible(false)
