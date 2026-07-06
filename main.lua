@@ -11,6 +11,7 @@ local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
 local CoreGui = game:GetService("CoreGui")
 local GuiService = game:GetService("GuiService")
+local GroupService = game:GetService("GroupService")
 local UserInputService = game:GetService("UserInputService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local HttpService = game:GetService("HttpService")
@@ -23,7 +24,17 @@ local TeleportCheck = false
 LocalPlayer.OnTeleport:Connect(function()
 	if not TeleportCheck then
 		TeleportCheck = true
-		queueonteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/shxmrocks/tds/refs/heads/main/main.lua'))()")
+        if TDS then
+            writefile("TDSMacros/currentMacro.txt", Options.MacroList.Value)
+        end
+		queueonteleport([[
+            loadstring(game:HttpGet('https://raw.githubusercontent.com/shxmrocks/tds/refs/heads/main/main.lua'))()
+            
+            local macroName = readfile("TDSMacros/currentMacro")
+            if macroName then
+                loadstring(readfile("TDSMacros/" .. macroName .. ".txt"))()
+            end
+        ]])
 	end
 end)
 
@@ -69,9 +80,29 @@ local RemoteEvent = ReplicatedStorage:WaitForChild("RemoteEvent")
 
 -- // log menu shit
 
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/refs/heads/main/Library.lua"))()
+local repo = "https://raw.githubusercontent.com/shxmrocks/Obsidian/main/"
+
+local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
+local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
+local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
+
+local info = loadstring(game:HttpGet("https://raw.githubusercontent.com/shxmrocks/tds/refs/heads/main/info.lua"))()
+
+local Options = Library.Options
+local Toggles = Library.Toggles
+
+Library.ForceCheckbox = true
+
 local Holder, Container = Library:AddDraggableMenu("LOGS")
 Holder.Visible = false
+
+local function autosave()
+	if SaveManager:GetAutoloadConfig() == "none" or SaveManager:GetAutoloadConfig() == "" then
+		SaveManager:SaveAutoloadConfig("autosave")
+	end
+	local suc, err = SaveManager:Save("autosave")
+	if suc then print("saved") else warn(err) end
+end
 
 do
     local RealBackground = Instance.new("ScrollingFrame")
@@ -114,10 +145,10 @@ do
     button.Name = "ClearButton"
     button.Parent = ButtonHolder
     button.Size = UDim2.new(0.5, -5, 1, 0)
-    button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    button.BackgroundColor3 = Library.Scheme.MainColor
     button.BorderSizePixel = 0
     button.ZIndex = 13
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.TextColor3 = Library.Scheme.FontColor
     button.TextSize = 16
     button.Font = Enum.Font.Code
     button.Text = "Clear"
@@ -176,11 +207,24 @@ do
 
     button.Activated:Connect(Clear)
     saveButton.Activated:Connect(Save)
+
+    Library:AddOutline(button)
+    Library:AddOutline(saveButton)
+
+    Library:AddToRegistry(button, {
+        BackgroundColor3 = "MainColor",
+        TextColor3 = "FontColor",
+    })
+
+    Library:AddToRegistry(saveButton, {
+        BackgroundColor3 = "MainColor",
+        TextColor3 = "FontColor",
+    })
 end
 
 do
-    if not isfolder("TDScrap") then
-        makefolder("TDScrap")
+    if not isfolder("TDSMacros") then
+        makefolder("TDSMacros")
     end
 end
 
@@ -302,6 +346,40 @@ local TDS =  {
 
 -- // general functions
 
+function TDS:GetMacros(): ()
+    local Path = "TDSMacros"
+    local blacklist = {"sessionID", "currentMacro"}
+    local SuccessList, Files = pcall(listfiles, Path)
+    if not (SuccessList and typeof(Files) == "table") then
+        Library:Notify(string.format("Failed to load macro list: %s", tostring(Files)))
+        return {}
+    end
+
+    local FileNames = {}
+    for _, FilePath in Files do
+        local RawFileName = FilePath:match("(.+)%..+$")
+        if not RawFileName then continue end
+
+        local Position = RawFileName:gsub("\\", "/"):find("/[^/]*$")
+        local FileName = Position and RawFileName:sub(Position + 1) or RawFileName
+        if not FileName or table.find(blacklist, FileName) then continue end
+
+        table.insert(FileNames, FileName)
+    end
+
+    return FileNames
+end
+
+function TDS:RunMacro(Name: string): ()
+    if not Name or not table.find(self:GetMacros(), Name) then return end
+
+    local suc, err = pcall(function()
+        loadstring(readfile("TDSMacros/" .. Name .. ".txt"))()
+    end)
+
+    if not suc then return warn(err) end
+end
+
 function TDS:ToggleLogs(Visible: boolean): ()
     Holder.Visible = Visible
 end
@@ -310,7 +388,7 @@ function TDS:GenerateSessionID(): ()
     local id = HttpService:GenerateGUID(false)
     self.SessionID = id
     
-    writefile("TDScrap/sessionID.txt", id)
+    writefile("TDSMacros/sessionID.txt", id)
 
     Log("Session " .. id)
 end
@@ -335,6 +413,10 @@ function TDS:GetMousePosition(Stacking: boolean): Vector3
 end
 
 -- // game related functions
+
+function TDS:PromptGroup()
+    return GroupService:PromptJoinAsync(4914494)
+end
 
 function TDS:GetGameStatus(): string
     if workspace:FindFirstChild("Type").Value == "Game" then
@@ -712,6 +794,160 @@ function TDS:SellAllTowers()
         Sleep(50)
     end
 end
+
+-- // create librarhy shit
+
+local Window = Library:CreateWindow({
+	Title = "macro slop",
+    Footer = "version: " .. info.version,
+    Icon = 13340047973,
+	Center = true,
+	AutoShow = true,
+	Resizable = true,
+	EnableSidebarResize = true,
+	ShowCustomCursor = false,
+	UnlockMouseWhileOpen = true,
+    NotifySide = "Right"
+})
+
+local Tabs = {
+	Macro = Window:AddTab("Macro", "bot"),
+	["UI Settings"] = Window:AddTab("UI Settings", "settings"),
+}
+
+local LoadGroupbox = Tabs.Macro:AddLeftGroupbox("Load")
+local RecorderGroupbox = Tabs.Macro:AddRightGroupbox("Recorder")
+local DiscordGroupbox = Tabs.Macro:AddLeftGroupbox("Discord")
+local OtherGroupbox = Tabs.Macro:AddRightGroupbox("Other")
+
+-- have a way to stop it
+LoadGroupbox:AddToggle("MacroActive", {
+	Text = "Enable Macro",
+	Default = false,
+    Callback = function(Value)
+        if Value then
+            TDS:RunMacro(Options.MacroList.Value)
+        end
+    end
+})
+
+LoadGroupbox:AddDropdown("MacroList", { Text = "Macros", Values = TDS:GetMacros(), AllowNull = true })
+
+LoadGroupbox:AddButton("Refresh list", function()
+    Options.MacroList:SetValue(TDS:GetMacros())
+    Options.MacroList:SetValue(nil)
+end)
+
+-- add smth to prevent duplicate names later
+RecorderGroupbox:AddInput("MacroName", {
+	Default = nil,
+	Numeric = false,
+	Finished = false,
+	ClearTextOnFocus = true,
+		
+	Text = "Macro Name",
+	Placeholder = "",
+})
+
+local begin = RecorderGroupbox:AddButton("Begin Recording", function() print("Begin recording") end)
+local pause = RecorderGroupbox:AddButton("Pause Recording", function() print("Pause recording") end)
+local stop = RecorderGroupbox:AddButton("Stop Recording", function() print("Stop recording") end)
+
+stop:SetDisabled(true)
+pause:SetDisabled(true)
+
+DiscordGroupbox:AddToggle("LogDiscord", {
+	Text = "Log to Discord Webhook",
+    Tooltip = "logs only session stats and important stufff",
+	Default = false,
+})
+DiscordGroupbox:AddToggle("Ping", {
+	Text = "Ping",
+	Tooltip = "will ping @everyone ",
+	Default = false,
+})
+DiscordGroupbox:AddInput("WebhookURL", {
+	Default = "",
+	Numeric = false,
+	Finished = false,
+	ClearTextOnFocus = true,
+		
+	Text = "Webhook URL",
+	Placeholder = "https://discord.com/api/webhooks/",
+})
+
+OtherGroupbox:AddToggle("ToggleLogs", {
+	Text = "Toggle Logs",
+	Default = false,
+    Callback = function(Value)
+        TDS:ToggleLogs(Value)
+    end
+})
+
+--[[local Watermark = Library:AddDraggableLabel("watermark...")
+Watermark:SetVisible(false)
+
+Watermark:SetText(("No Macro Active | %s"):format(
+	game.Players.LocalPlayer.Name
+));]]
+
+Library:OnUnload(function()
+	autosave()
+	Library.Unloaded = true
+end)
+
+-- UI Settings
+local MenuGroup = Tabs["UI Settings"]:AddLeftGroupbox("Menu")
+
+Library.KeybindFrame.Visible = false;
+
+--MenuGroup:AddToggle("Watermark", { Default = false, Text = "Watermark", Callback = function(value) Watermark:SetVisible(value) end})
+MenuGroup:AddToggle("ShowCustomCursor", {Text = "Custom Cursor", Default = Library.ShowCustomCursor, Callback = function(Value) Library.ShowCustomCursor = Value end})
+MenuGroup:AddDropdown("NotifySide", {Values = { "Left", "Right" }, Default = 2, Text = "Notification Side", Callback = function(value) Library:SetNotifySide(value) end})
+MenuGroup:AddDropdown("DPIDropdown", {
+	Values = { "50%", "75%", "100%", "125%", "150%", "175%", "200%" },
+	Default = "100%",
+
+	Text = "DPI Scale",
+
+	Callback = function(Value)
+		Value = Value:gsub("%%", "")
+		local DPI = tonumber(Value)
+
+		Library:SetDPIScale(DPI)
+	end,
+})
+
+MenuGroup:AddSlider("UICornerSlider", {
+	Text = "Corner Radius",
+	Default = Library.CornerRadius,
+	Min = 0,
+	Max = 20,
+	Rounding = 0,
+	Callback = function(value)
+		Window:SetCornerRadius(value)
+	end
+})
+MenuGroup:AddDivider()
+MenuGroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", { Default = "RightShift", NoUI = true, Text = "Menu keybind" })
+MenuGroup:AddButton("Unload", function() ExitApp() end)
+
+Library.ToggleKeybind = Options.MenuKeybind
+
+ThemeManager:SetLibrary(Library)
+SaveManager:SetLibrary(Library)
+
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
+
+ThemeManager:SetFolder("nullscapesample")
+--SaveManager:SetFolder()
+
+--SaveManager:BuildConfigSection(Tabs["UI Settings"])
+
+ThemeManager:ApplyToTab(Tabs["UI Settings"])
+
+SaveManager:LoadAutoloadConfig()
 
 -- // stguff
 
