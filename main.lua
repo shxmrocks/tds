@@ -206,8 +206,8 @@ do
         Library:Notify("Copied to clipboard")
     end
 
-    button.Activated:Connect(Clear)
-    saveButton.Activated:Connect(Save)
+    button.Activated:Connect(ClearLogs)
+    saveButton.Activated:Connect(SaveLogs)
 
     Library:AddOutline(button)
     Library:AddOutline(saveButton)
@@ -393,7 +393,7 @@ function TDS:GenerateSessionID(): ()
 end
 
 function TDS:GetSessionID(): string
-    return self.SessionID
+    return self.SessionID or readfile("TDSMacros/sessionID.txt")
 end
 
 function TDS:GoTo(Position: Vector3): ()
