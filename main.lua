@@ -25,17 +25,9 @@ LocalPlayer.OnTeleport:Connect(function()
 	if not TeleportCheck then
 		TeleportCheck = true
         if TDS then
-            writefile("TDSMacros/currentMacro.txt", Library.Options.MacroList.Value)
             TDS:GenerateSessionID()
         end
-		queueonteleport([[
-            loadstring(game:HttpGet('https://raw.githubusercontent.com/shxmrocks/tds/refs/heads/main/main.lua'))()
-            
-            local macroName = readfile("TDSMacros/currentMacro.txt")
-            if macroName then
-                loadstring(readfile("TDSMacros/" .. macroName .. ".txt"))()
-            end
-        ]])
+		queueonteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/shxmrocks/tds/refs/heads/main/main.lua'))()")
 	end
 end)
 
@@ -349,7 +341,7 @@ local TDS =  {
 
 function TDS:GetMacros(): ()
     local Path = "TDSMacros"
-    local blacklist = {"sessionID", "currentMacro"}
+    local blacklist = {"sessionID"}
     local SuccessList, Files = pcall(listfiles, Path)
     if not (SuccessList and typeof(Files) == "table") then
         Library:Notify(string.format("Failed to load macro list: %s", tostring(Files)))
@@ -880,10 +872,10 @@ OtherGroupbox:AddToggle("ToggleLogs", {
 	Text = "Toggle Logs",
 	Default = false,
     Callback = function(Value)
-        ClearLogs()
         TDS:ToggleLogs(Value)
 
         if Value then
+            ClearLogs()
             Log("Session " .. TDS:GetSessionID())
         end
     end
