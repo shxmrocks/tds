@@ -30,6 +30,7 @@ table.insert(Connections, LocalPlayer.OnTeleport:Connect(function()
 	end
 end))
 
+-- unreliable but idk what else tbjh
 table.insert(Connections, game.Close:Connect(function()
 	if isfile("TDSMacros/sessionID.txt") and not TeleportCheck then
         delfile("TDSMacros/sessionID.txt")
@@ -91,7 +92,7 @@ local Toggles = Library.Toggles
 
 Library.ForceCheckbox = true
 
-local Holder, Container = Library:AddDraggableMenu("LOGS")
+local Holder, Container = Library:AddDraggableMenu("CONSOLE LOGS")
 Holder.Visible = false
 
 local function autosave()
@@ -189,7 +190,6 @@ do
                 item:Destroy() 
             end
         end
-        Library:Notify("Cleared logs")
     end
 
     function SaveLogs()
@@ -200,7 +200,7 @@ do
             end
         end
         Clipboard(full)
-        Library:Notify("Copied to clipboard")
+        Log:Notify("Copied to clipboard")
     end
 
     button.Activated:Connect(ClearLogs)
@@ -369,13 +369,18 @@ function TDS:GetMacros(): ()
 end
 
 function TDS:RunMacro(Name: string): ()
-    if not Name or not table.find(self:GetMacros(), Name) then return end
-
     local suc, err = pcall(function()
         loadstring(readfile("TDSMacros/" .. Name .. ".txt"))()
     end)
 
     if not suc then return warn(err) end
+end
+
+function TDS:GetMacroInfo(Name: string)
+    local info = string.split(readfile("TDSMacros/" .. Name .. ".txt"), "\n")[1]
+    local json = string.gsub(info, "^%-%-%s*", "")
+
+    return HttpService:JSONDecode(json)
 end
 
 function TDS:ToggleLogs(Visible: boolean): ()
@@ -821,14 +826,29 @@ LoadGroupbox:AddToggle("MacroActive", {
 	Text = "Enable Macro",
 	Default = false,
     Callback = function(Value)
-        if Value then
+        if Toggles.MacroActive.Value then
             task.wait(1) -- idk find a better way to wait for the option to load
             TDS:RunMacro(Options.MacroList.Value)
         end
     end
 })
 
-LoadGroupbox:AddDropdown("MacroList", { Text = "Macros", Values = TDS:GetMacros(), AllowNull = true })
+LoadGroupbox:AddDropdown("MacroList", { 
+    Text = "Macros", 
+    Values = TDS:GetMacros(), 
+    AllowNull = true ,
+    Callback = function(Value)
+        if Value then
+            local info = TDS:GetMacroInfo(Value)[1][1]
+
+            Window:AddDialog("Dialogue", {
+                Title = Options.MacroList.Value,
+                Description = string.format("Map: %s\nMode: %s\nDifficulty: %s\nLoadout: %s", info.Map, info.Mode, info.Difficulty, table.concat(info.Loadout, ", ")),
+                OutsideClickDismiss = true
+            })
+        end
+    end
+})
 
 LoadGroupbox:AddButton("Refresh list", function()
     Options.MacroList:SetValue(TDS:GetMacros())
@@ -875,22 +895,33 @@ DiscordGroupbox:AddInput("WebhookURL", {
 
 OtherGroupbox:AddToggle("ToggleLogs", {
 	Text = "Toggle Logs",
-	Default = false,
+	Default = true,
     Callback = function(Value)
         TDS:ToggleLogs(Value)
 
-        if Value then
+        if Toggles.ToggleLogs.Value then
             ClearLogs()
             Log("Session " .. TDS:GetSessionID())
         end
     end
 })
 
+Toggles.ToggleLogs:SetValue(true)
+
+OtherGroupbox:AddDropdown("LogsList", {
+	Values = { "Console", "Session Info" },
+	Default = { "Console" }, 
+	Multi = true,
+
+	Searchable = false,
+	Text = "Logs",
+})
+
 if not isfile("TDSMacros/sessionID.txt") then
     TDS:GenerateSessionID()
 end
 
-Library:Notify("Press right shift to toggle the UI")
+Log("Press right shift to toggle the UI")
 
 --[[local Watermark = Library:AddDraggableLabel("watermark...")
 Watermark:SetVisible(false)
@@ -948,8 +979,8 @@ SaveManager:SetLibrary(Library)
 SaveManager:IgnoreThemeSettings()
 SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
 
-ThemeManager:SetFolder("nullscapesample")
---SaveManager:SetFolder()
+ThemeManager:SetFolder("TDSMacros")
+SaveManager:SetFolder("TDSMacros")
 
 --SaveManager:BuildConfigSection(Tabs["UI Settings"])
 
