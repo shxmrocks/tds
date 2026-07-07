@@ -22,6 +22,14 @@ local Mouse = LocalPlayer:GetMouse()
 
 local Connections = {}
 
+local function autosave()
+	if SaveManager:GetAutoloadConfig() == "none" or SaveManager:GetAutoloadConfig() == "" then
+		SaveManager:SaveAutoloadConfig("autosave")
+	end
+	local suc, err = SaveManager:Save("autosave")
+	if suc then print("saved") else warn(err) end
+end
+
 local TeleportCheck = false
 table.insert(Connections, LocalPlayer.OnTeleport:Connect(function()
 	if not TeleportCheck then
@@ -95,14 +103,6 @@ Library.ForceCheckbox = true
 
 local Holder, Container = Library:AddDraggableMenu("CONSOLE LOGS")
 Holder.Visible = false
-
-local function autosave()
-	if SaveManager:GetAutoloadConfig() == "none" or SaveManager:GetAutoloadConfig() == "" then
-		SaveManager:SaveAutoloadConfig("autosave")
-	end
-	local suc, err = SaveManager:Save("autosave")
-	if suc then print("saved") else warn(err) end
-end
 
 do
     local RealBackground = Instance.new("ScrollingFrame")
@@ -827,8 +827,9 @@ LoadGroupbox:AddToggle("MacroActive", {
 	Text = "Enable Macro",
 	Default = false,
     Callback = function(Value)
-        if Toggles.MacroActive.Value then
+        if Toggles.MacroActive.Value and Options.MacroList.Value then
             task.wait(1) -- idk find a better way to wait for the option to load
+            Log(string.format("Macro %q started", Options.MacroList.Value))
             TDS:RunMacro(Options.MacroList.Value)
         end
     end
