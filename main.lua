@@ -799,6 +799,10 @@ end
 
 -- // create librarhy shit
 
+if not isfile("TDSMacros/sessionID.txt") then
+    TDS:GenerateSessionID()
+end
+
 local Window = Library:CreateWindow({
 	Title = "macro slop",
     Footer = "version: " .. info.version,
@@ -920,10 +924,6 @@ OtherGroupbox:AddDropdown("LogsList", {
 	Searchable = false,
 	Text = "Logs",
 })
-
-if not isfile("TDSMacros/sessionID.txt") then
-    TDS:GenerateSessionID()
-end
 
 Log("Press right shift to toggle the UI")
 
