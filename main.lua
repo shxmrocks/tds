@@ -22,14 +22,6 @@ local Mouse = LocalPlayer:GetMouse()
 
 local Connections = {}
 
-local function autosave()
-	if SaveManager:GetAutoloadConfig() == "none" or SaveManager:GetAutoloadConfig() == "" then
-		SaveManager:SaveAutoloadConfig("autosave")
-	end
-	local suc, err = SaveManager:Save("autosave")
-	if suc then print("saved") else warn(err) end
-end
-
 local TeleportCheck = false
 table.insert(Connections, LocalPlayer.OnTeleport:Connect(function()
 	if not TeleportCheck then
@@ -103,6 +95,14 @@ Library.ForceCheckbox = true
 
 local Holder, Container = Library:AddDraggableMenu("CONSOLE LOGS")
 Holder.Visible = false
+
+function autosave()
+	if SaveManager:GetAutoloadConfig() == "none" or SaveManager:GetAutoloadConfig() == "" then
+		SaveManager:SaveAutoloadConfig("autosave")
+	end
+	local suc, err = SaveManager:Save("autosave")
+	if suc then print("saved") else warn(err) end
+end
 
 do
     local RealBackground = Instance.new("ScrollingFrame")
