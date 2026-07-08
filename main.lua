@@ -201,7 +201,7 @@ do
             end
         end
         Clipboard(full)
-        Log:Notify("Copied to clipboard")
+        Log("Copied to clipboard")
     end
 
     button.Activated:Connect(ClearLogs)
@@ -213,13 +213,110 @@ do
     Library:AddToRegistry(button, {
         BackgroundColor3 = "MainColor",
         TextColor3 = "FontColor",
+        FontFace = "Font"
     })
 
     Library:AddToRegistry(saveButton, {
         BackgroundColor3 = "MainColor",
         TextColor3 = "FontColor",
+        FontFace = "Font"
     })
 end
+
+-- need a better way
+local Holder2, Container2 = Library:AddDraggableMenu("SESSION INFO")
+Holder2.Position = UDim2.new(0, 680, 0, 6)
+
+    local RealBackground = Instance.new("Frame")
+    local UIListLayout_Logs = Instance.new("UIListLayout")
+
+    RealBackground.Parent = Container2
+    RealBackground.BackgroundTransparency = 1
+    RealBackground.Size = UDim2.new(0, 300, 0, 350)
+    RealBackground.ZIndex = 11
+
+	local label = Instance.new("TextLabel")
+    label.Parent = RealBackground
+    label.Size = UDim2.new(1, -5, 0.15, 0)
+    label.BackgroundTransparency = 1
+    label.BorderSizePixel = 0
+    label.ZIndex = 13
+    label.TextColor3 = Library.Scheme.FontColor
+    label.TextSize = 16
+    label.Font = Enum.Font.Code
+	label.RichText = true
+    label.Text = "Coins | Gain"
+    label.LayoutOrder = 1
+
+	local label2 = Instance.new("TextLabel")
+    label2.Parent = RealBackground
+    label2.Size = UDim2.new(1, -5, 0.15, 0)
+    label2.BackgroundTransparency = 1
+    label2.BorderSizePixel = 0
+    label2.ZIndex = 13
+    label2.TextColor3 = Library.Scheme.FontColor
+    label2.TextSize = 16
+    label2.Font = Enum.Font.Code
+	label2.RichText = true
+    label2.Text = "Gems | Gain"
+    label2.LayoutOrder = 2
+
+	local label3 = Instance.new("TextLabel")
+    label3.Parent = RealBackground
+    label3.Size = UDim2.new(1, -5, 0.15, 0)
+    label3.BackgroundTransparency = 1
+    label3.BorderSizePixel = 0
+    label3.ZIndex = 13
+    label3.TextColor3 = Library.Scheme.FontColor
+    label3.TextSize = 16
+    label3.Font = Enum.Font.Code
+	label3.RichText = true
+    label3.Text = "Total XP | XP Gain"
+    label3.LayoutOrder = 3
+
+	local label4 = Instance.new("TextLabel")
+    label4.Parent = RealBackground
+    label4.Size = UDim2.new(1, -5, 0.15, 0)
+    label4.BackgroundTransparency = 1
+    label4.BorderSizePixel = 0
+    label4.ZIndex = 13
+    label4.TextColor3 = Library.Scheme.FontColor
+    label4.TextSize = 16
+    label4.Font = Enum.Font.Code
+	label4.RichText = true
+    label4.Text = "Recent Result"
+    label4.LayoutOrder = 4
+	
+	local label5 = Instance.new("TextLabel")
+    label5.Parent = RealBackground
+    label5.Size = UDim2.new(1, -5, 0.15, 0)
+    label5.BackgroundTransparency = 1
+    label5.BorderSizePixel = 0
+    label5.ZIndex = 13
+    label5.TextColor3 = Library.Scheme.FontColor
+    label5.TextSize = 16
+    label5.Font = Enum.Font.Code
+	label5.RichText = true
+    label5.Text = "Playtime | Match Time"
+    label5.LayoutOrder = 5
+
+	local label6 = Instance.new("TextLabel")
+    label6.Parent = RealBackground
+    label6.Size = UDim2.new(1, -5, 0.15, 0)
+    label6.BackgroundTransparency = 1
+    label6.BorderSizePixel = 0
+    label6.ZIndex = 13
+    label6.TextColor3 = Library.Scheme.FontColor
+    label6.TextSize = 16
+    label6.Font = Enum.Font.Code
+	label6.RichText = true
+    label6.Text = "Total Runs"
+    label6.LayoutOrder = 6
+
+	UIListLayout_Logs.Parent = RealBackground
+    UIListLayout_Logs.SortOrder = Enum.SortOrder.LayoutOrder
+    UIListLayout_Logs.Padding = UDim.new(0, 2)
+
 
 do
     if not isfolder("TDSMacros") then
@@ -251,6 +348,30 @@ local function checkOk(data)
     end
 
     return false
+end
+
+local function getDuration(seconds)
+    local d = math.floor(seconds / 86400);
+    local h = math.floor(seconds);
+    local m = math.floor(seconds / 60);
+    local s = math.floor(seconds % 60);
+    local string = ""
+
+    if d > 0 then
+        string = string .. d .. "d ";
+        h = h - d * 24;
+    end;
+
+    if h > 0 then
+        string = string .. h .. "h ";
+        m = m - h * 60;
+    end;
+
+    if m > 0 then
+        string = string .. m .. "m ";
+    end;
+
+    return string .. s .. "s";
 end
 
 local Keybinds = {}
@@ -340,7 +461,19 @@ end
 --// good stuff below
 
 local TDS =  {
-    PlacedTowers = {}
+    PlacedTowers = {},
+    Info = {
+        Coins = 0,
+        CoinsGained = 0,
+        Gems = 0,
+        GemsGained = 0,
+        XP = 0,
+        XPGained = 0,
+        Results = "",
+        Playtime = 0,
+        MatchTime = 0,
+        TotalRuns = 0
+    }
 }
 
 -- // general functions
@@ -369,6 +502,25 @@ function TDS:GetMacros(): ()
     return FileNames
 end
 
+function TDS:GetSessionInfo()
+    if self:GetMatchStatus() == "Dead" or self:GetMatchStatus() == "Triumph" then
+        self.Info.Coins += PlayerReplicator.GetEntityFromPlayer(LocalPlayer).CashReward
+        self.Info.CoinsGained = PlayerReplicator.GetEntityFromPlayer(LocalPlayer).CashReward
+        --self.Info.Gems = PlayerReplicator.GetEntityFromPlayer(LocalPlayer).CashReward
+        --self.Info.GemsGained = PlayerReplicator.GetEntityFromPlayer(LocalPlayer).CashReward
+        self.Info.XP += PlayerReplicator.GetEntityFromPlayer(LocalPlayer).ExperienceReward
+        self.Info.XPGained = PlayerReplicator.GetEntityFromPlayer(LocalPlayer).ExperienceReward
+        self.Info.Results = self:GetMatchStatus() -- make sure to add wave lost if loss
+        self.Info.Playtime += getDuration(GameState.GameDuration)
+        self.Info.MatchTime = getDuration(GameState.GameDuration)
+        self.Info.TotalRuns += 1
+
+        appendfile("TDSMacros/sessionID.txt", "\n" .. HttpService:JSONEncode(self.Info))
+    end
+
+    return self.Info
+end
+
 function TDS:RunMacro(Name: string): ()
     local suc, err = pcall(function()
         loadstring(readfile("TDSMacros/" .. Name .. ".txt"))()
@@ -386,6 +538,10 @@ end
 
 function TDS:ToggleLogs(Visible: boolean): ()
     Holder.Visible = Visible
+end
+
+function TDS:ToggleSessionInfo(Visible: boolean): ()
+    Holder2.Visible = Visible
 end
 
 function TDS:GenerateSessionID(): ()
@@ -440,7 +596,7 @@ function TDS:GetMatchStatus(): string
     elseif GameState.GameStarted and not GameState.GameOver then
         return "In Progress"
     elseif (GameState.GameOver and GameState.Health <= 0) then
-        return "Dead"
+        return "Loss"
     elseif (GameState.GameOver and GameState.Health > 0) then
         return "Triumph"
     end
@@ -679,7 +835,7 @@ function TDS:SkipWave(): ()
 end
 
 function TDS:RestartGame(): ()
-    if self:GetMatchStatus() ~= "Dead" then
+    if self:GetMatchStatus() ~= "Loss" then
         return
     end
 
@@ -905,12 +1061,16 @@ OtherGroupbox:AddToggle("ToggleLogs", {
 	Text = "Toggle Logs",
 	Default = true,
     Callback = function(Value)
+        
+
         TDS:ToggleLogs(Value)
 
-        if Toggles.ToggleLogs.Value then
-            ClearLogs()
-            Log("Session " .. TDS:GetSessionID())
-        end
+            if Toggles.ToggleLogs.Value then
+                ClearLogs()
+                Log("Session " .. TDS:GetSessionID())
+            end
+
+            TDS:ToggleSessionInfo(Value)
     end
 })
 
@@ -926,6 +1086,21 @@ OtherGroupbox:AddDropdown("LogsList", {
 })
 
 Log("Press right shift to toggle the UI")
+
+CreateThread(function()
+    while not Library.Unloaded do
+        local info = TDS:GetSessionInfo()
+
+        label.Text = string.format("Coins | Gain: %s / %s", info.Coins, info.CoinsGained)
+        label2.Text = string.format("Gems | Gain: %s / %s", "s", "s")
+        label3.Text = string.format("Total XP | Gain: %s / %s", info.XP, info.XPGained)
+        label4.Text = string.format("Recent Result: %s", info.Result or "None")
+        label5.Text = string.format("Playtime | Match Time: %s / %s", info.Playtime, info.MatchTime)
+        label6.Text = string.format("Total Runs: %s", info.TotalRuns)
+
+        task.wait(1)
+    end
+end)
 
 --[[local Watermark = Library:AddDraggableLabel("watermark...")
 Watermark:SetVisible(false)
