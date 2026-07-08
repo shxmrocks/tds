@@ -511,12 +511,13 @@ function TDS:GetSessionInfo()
         self.Info.XP += PlayerReplicator.GetEntityFromPlayer(LocalPlayer).ExperienceReward
         self.Info.XPGained = PlayerReplicator.GetEntityFromPlayer(LocalPlayer).ExperienceReward
         self.Info.Results = self:GetMatchStatus() -- make sure to add wave lost if loss
-        self.Info.Playtime += getDuration(GameState.GameDuration)
-        self.Info.MatchTime = getDuration(GameState.GameDuration)
         self.Info.TotalRuns += 1
 
         appendfile("TDSMacros/sessionID.txt", "\n" .. HttpService:JSONEncode(self.Info))
     end
+
+    self.Info.Playtime += getDuration(GameState.GameDuration)
+    self.Info.MatchTime = getDuration(GameState.GameDuration)
 
     return self.Info
 end
@@ -1087,6 +1088,7 @@ OtherGroupbox:AddDropdown("LogsList", {
 
 Log("Press right shift to toggle the UI")
 
+-- rich text soon
 CreateThread(function()
     while not Library.Unloaded do
         local info = TDS:GetSessionInfo()
